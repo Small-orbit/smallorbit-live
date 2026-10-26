@@ -1,0 +1,17 @@
+name: watchdog
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # restarts the stream chain if it ever breaks
+  workflow_dispatch:
+permissions:
+  actions: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          n=$(gh run list -R ${{ github.repository }} -w live.yml --json status -q '[.[] | select(.status=="in_progress" or .status=="queued")] | length')
+          echo "active live runs: $n"
+          if [ "$n" -eq 0 ]; then gh workflow run live.yml -R ${{ github.repository }}; fi

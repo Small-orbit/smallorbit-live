@@ -3,7 +3,7 @@ Usage: python lofi.py out.wav [seed]
 """
 import sys, wave
 import numpy as np
-
+ 
 SR = 44100
 BPM = 78
 BEAT = 60.0 / BPM

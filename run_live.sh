@@ -24,7 +24,7 @@ while [ "$(date +%s)" -lt "$END" ]; do
     -re -f rawvideo -pix_fmt bgr24 -s ${W}x${H} -r 30 -i - \
     -f s16le -ar 48000 -ac 2 -i audio.fifo \
     -map 0:v -map 1:a \
-    -c:v libx264 -preset superfast -tune zerolatency -b:v 4500k -maxrate 4500k -bufsize 9000k -g 60 -keyint_min 60 -sc_threshold 0 -pix_fmt yuv420p \
+    -c:v libx264 -preset superfast -b:v 6000k -maxrate 6000k -bufsize 12000k -g 60 -keyint_min 60 -sc_threshold 0 -pix_fmt yuv420p \
     -c:a aac -b:a 160k -ar 48000 -f flv "$URL" 2>&1 | stdbuf -oL tr '\r' '\n'
   echo "[run] ffmpeg exited ($?), next segment in 2s"; sleep 2
 done

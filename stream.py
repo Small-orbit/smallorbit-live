@@ -315,7 +315,7 @@ while frame_i < t_end:
     yaw_speed = rng.uniform(0.10, 0.18) * rng.choice([-1, 1])   # rad per second
     last_mip = -99
     music.new_episode(); fin = False
-    rule_txt = text_strip(f"RULE {rule}", FONT, pill=True)
+    rule_txt = text_strip(f"{rule}", FONT, pill=True)
     while frame_i < t_end:
         t = ep_f / FPS
         if not done:

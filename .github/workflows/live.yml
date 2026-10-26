@@ -12,12 +12,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: deps
         run: |
-          sudo rm -f /var/lib/man-db/auto-update
-          ( export DEBIAN_FRONTEND=noninteractive; A="-y -qq --no-install-recommends -o DPkg::Lock::Timeout=60"
-            timeout 240 sudo -E apt-get install $A ffmpeg || { timeout 240 sudo apt-get update -qq; timeout 300 sudo -E apt-get install $A ffmpeg; } ) &
+          ( mkdir -p ff && curl -sSL --retry 3 https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz | tar -xJ -C ff --strip-components=2 --wildcards '*/bin/ffmpeg' ) &
           pip install -q numpy numba opencv-python-headless pillow
           wait
-          ffmpeg -version | head -1
+          echo "FFMPEG=$PWD/ff/ffmpeg" >> $GITHUB_ENV
+          ff/ffmpeg -version | head -1
       - name: go live
         env:
           STREAM_KEY: ${{ secrets.YT_STREAM_KEY }}

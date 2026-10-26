@@ -249,12 +249,20 @@ except Exception:
     FONT = ImageFont.load_default(); FONT_S = FONT
 SH = int(70 * H / 720)
 
-SH = int(48 * H / 720)
-def text_strip(s1, font):
+SH = int(58 * H / 720)
+def text_strip(s1, font, pill=False):
     img = Image.new("RGBA", (W, SH), (0, 0, 0, 0))
     dr = ImageDraw.Draw(img)
     tw = dr.textlength(s1, font=font)
-    dr.text(((W - tw) / 2, 2), s1, font=font, fill=(255, 255, 255, 255), stroke_width=3, stroke_fill=(0, 0, 0, 255))
+    l, t, r, b = dr.textbbox((0, 0), s1, font=font)
+    ty = (SH - (b - t)) / 2 - t
+    if pill:
+        px = int(22 * H / 720); r_ = int(14 * H / 720)
+        x0 = (W - tw) / 2 - px; x1 = (W + tw) / 2 + px
+        dr.rounded_rectangle((x0, 2, x1, SH - 3), radius=r_, fill=(18, 20, 26, 215), outline=(255, 255, 255, 110), width=max(2, int(2 * H / 720)))
+        dr.text(((W - tw) / 2, ty), s1, font=font, fill=(255, 255, 255, 255))
+    else:
+        dr.text(((W - tw) / 2, ty), s1, font=font, fill=(255, 255, 255, 255), stroke_width=3, stroke_fill=(0, 0, 0, 255))
     a = np.asarray(img)
     return a[..., [2, 1, 0]].astype(np.uint16), a[..., 3:4].astype(np.uint16)
 
@@ -307,7 +315,7 @@ while frame_i < t_end:
     yaw_speed = rng.uniform(0.10, 0.18) * rng.choice([-1, 1])   # rad per second
     last_mip = -99
     music.new_episode(); fin = False
-    rule_txt = text_strip(f"RULE {rule}", FONT)
+    rule_txt = text_strip(f"RULE {rule}", FONT, pill=True)
     while frame_i < t_end:
         t = ep_f / FPS
         if not done:

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Small Orbit · Live control</title>
+<style>
+:root{--bg:#0d0e11;--card:#16181d;--line:#262932;--tx:#e8e9ee;--mut:#8b8f9c;--ok:#3ddc84;--warn:#ffb020;--bad:#ff4d4f;--acc:#e8322b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid var(--line)}
+header h1{font-size:18px;margin:0;letter-spacing:.3px}.dot{width:12px;height:12px;border-radius:50%;background:var(--mut);box-shadow:0 0 0 4px #ffffff10}
+.dot.live{background:var(--ok);animation:p 1.6s infinite}.dot.bad{background:var(--bad)}.dot.warn{background:var(--warn)}
+@keyframes p{50%{box-shadow:0 0 0 8px #3ddc8420}}
+main{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;padding:16px 22px;max-width:1400px;margin:auto}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--mut);margin:0 0 12px}
+.video{position:relative;padding-top:56.25%;border-radius:10px;overflow:hidden;background:#000}
+.video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:#0f1115;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.stat b{display:block;font-size:18px;margin-top:2px}.stat span{color:var(--mut);font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--mut);font-weight:500}a{color:#9ab8ff;text-decoration:none}
+.pill{padding:2px 8px;border-radius:99px;font-size:12px;background:#ffffff10}
+.pill.success,.pill.in_progress{color:var(--ok)}.pill.failure,.pill.timed_out{color:var(--bad)}.pill.cancelled{color:var(--mut)}.pill.queued{color:var(--warn)}
+button{background:#22252d;color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:9px 14px;font-weight:600;cursor:pointer}
+button:hover{border-color:#3a3e4a}button.go{background:var(--ok);color:#06210f;border:0}button.stop{background:var(--bad);border:0}
+button:disabled{opacity:.4;cursor:not-allowed}.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+input{width:100%;background:#0f1115;border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:9px}
+.mut{color:var(--mut);font-size:12px}#log{font:12px ui-monospace,monospace;color:var(--mut);margin-top:10px;white-space:pre-wrap}
+ol{margin:0;padding-left:18px}li{margin:3px 0}
+</style></head><body>
+<header><div id="dot" class="dot"></div><h1>Small Orbit · Live control</h1><span id="headline" class="mut">loading…</span>
+<span style="flex:1"></span><a href="https://studio.youtube.com/channel/UC8NmwAgiXLAmO23kSRLv-Ng/livestreaming" target="_blank">YouTube Studio ↗</a>
+&nbsp;·&nbsp;<a href="https://github.com/Small-orbit/smallorbit-live/actions" target="_blank">Actions ↗</a></header>
+<main>
+<section>
+  <div class="card"><h2>Live on YouTube</h2>
+    <div class="video"><iframe id="yt" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen
+      src="https://www.youtube.com/embed/live_stream?channel=UC8NmwAgiXLAmO23kSRLv-Ng&mute=1&autoplay=1"></iframe></div>
+    <p class="mut">If the player says the stream is offline, YouTube hasn't picked up the encoder yet (allow ~1–2 min after a run starts).</p>
+  </div>
+  <div class="card" style="margin-top:16px"><h2>Recent runs</h2>
+    <table><thead><tr><th>Run</th><th>Workflow</th><th>Status</th><th>Started</th><th>Duration</th></tr></thead><tbody id="runs"></tbody></table>
+  </div>
+</section>
+<section>
+  <div class="card"><h2>Now</h2>
+    <div class="stats">
+      <div class="stat"><span>Encoder</span><b id="s-state">–</b></div>
+      <div class="stat"><span>Uptime this run</span><b id="s-up">–</b></div>
+      <div class="stat"><span>Ingest</span><b id="s-ing">–</b></div>
+      <div class="stat"><span>Next hand-off in</span><b id="s-next">–</b></div>
+      <div class="stat"><span>Watchdog</span><b id="s-wd">–</b></div>
+      <div class="stat"><span>Last checked</span><b id="s-chk">–</b></div>
+    </div>
+    <div style="margin-top:12px"><span class="mut">Current step</span><ol id="steps" class="mut"></ol></div>
+  </div>
+  <div class="card" style="margin-top:16px"><h2>Manage</h2>
+    <p class="mut">Controls need a GitHub token. It's saved only in this browser. Create a fine-grained token for <b>Small-orbit/smallorbit-live</b> with <b>Actions: Read and write</b>.
+      <a href="https://github.com/settings/personal-access-tokens/new" target="_blank">Create token ↗</a></p>
+    <input id="tok" type="password" placeholder="github_pat_…">
+    <div class="row"><button id="save">Save token</button><button id="forget">Forget</button></div>
+    <div class="row">
+      <button class="go" id="b-start">▶ Start stream</button>
+      <button id="b-restart">↻ Restart</button>
+      <button class="stop" id="b-stop">■ Stop (and pause watchdog)</button>
+    </div>
+    <div class="row"><button id="b-wdon">Watchdog on</button><button id="b-wdoff">Watchdog off</button></div>
+    <div id="log"></div>
+  </div>
+</section>
+</main>
+<script>
+const R="Small-orbit/smallorbit-live",API="https://api.github.com/repos/"+R;
+const $=id=>document.getElementById(id);
+let tok=localStorage.getItem("so_tok")||"";$("tok").value=tok?"••••••••":"";
+const H=()=>{const h={"Accept":"application/vnd.github+json"};if(tok)h.Authorization="Bearer "+tok;return h};
+const log=m=>{$("log").textContent=new Date().toLocaleTimeString()+"  "+m+"\n"+$("log").textContent};
+async function gh(path,opt={}){const r=await fetch(API+path,{...opt,headers:{...H(),...(opt.headers||{})}});
+  if(!r.ok&&r.status!==204){const t=await r.text();throw new Error(r.status+" "+t.slice(0,160))}return r.status===204?{}:r.json().catch(()=>({}))}
+const fmt=s=>{s=Math.max(0,Math.floor(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h}h ${m}m`:`${m}m ${s%60}s`};
+let cur=null;
+async function refresh(){
+  try{
+    const d=await gh("/actions/runs?per_page=12");const runs=d.workflow_runs||[];
+    $("runs").innerHTML=runs.map(r=>{const st=r.status==="completed"?r.conclusion:r.status;
+      const dur=((r.status==="completed"?new Date(r.updated_at):new Date())-new Date(r.run_started_at||r.created_at))/1000;
+      return `<tr><td><a href="${r.html_url}" target="_blank">#${r.run_number}</a></td><td>${r.name}</td><td><span class="pill ${st}">${st}</span></td><td>${new Date(r.created_at).toLocaleString()}</td><td>${fmt(dur)}</td></tr>`}).join("");
+    const live=runs.filter(r=>r.name==="live"&&r.status!=="completed");cur=live[0]||null;
+    const wd=runs.find(r=>r.name==="watchdog");
+    if(cur){
+      const up=(Date.now()-new Date(cur.run_started_at||cur.created_at))/1000;
+      $("s-up").textContent=fmt(up);$("s-next").textContent=fmt(20700-up);
+      $("s-ing").textContent=cur.run_number%2?"primary":"backup";
+      const j=await gh(`/actions/runs/${cur.id}/jobs`);const job=(j.jobs||[])[0];
+      const steps=(job&&job.steps)||[];const now=steps.find(s=>s.status==="in_progress");
+      const streaming=now&&now.name==="go live";
+      $("s-state").textContent=streaming?"Streaming":(cur.status==="queued"?"Queued":"Starting");
+      $("dot").className="dot "+(streaming?"live":"warn");
+      $("headline").textContent=streaming?`Live · run #${cur.run_number}`:`Run #${cur.run_number} ${now?now.name:cur.status}`;
+      $("steps").innerHTML=steps.map(s=>`<li>${s.status==="completed"?(s.conclusion==="success"?"✓":"✗"):s.status==="in_progress"?"●":"○"} ${s.name}</li>`).join("");
+    }else{
+      $("s-state").textContent="Offline";$("s-up").textContent=$("s-next").textContent=$("s-ing").textContent="–";
+      $("dot").className="dot bad";$("headline").textContent="No live run";$("steps").innerHTML="";
+    }
+    try{const w=await gh("/actions/workflows/watchdog.yml");$("s-wd").textContent=w.state==="active"?"On":"Off"}catch(e){$("s-wd").textContent=wd?"On":"?"}
+    $("s-chk").textContent=new Date().toLocaleTimeString();
+  }catch(e){log("refresh failed: "+e.message+(tok?"":" (no token: GitHub allows 60 checks/hour)"))}
+}
+async function act(name,fn){if(!tok){log("Save a token first.");return}try{await fn();log(name+" ✓")}catch(e){log(name+" failed: "+e.message)}setTimeout(refresh,4000)}
+const start=()=>gh("/actions/workflows/live.yml/dispatches",{method:"POST",body:JSON.stringify({ref:"main"})});
+const stopAll=async()=>{const d=await gh("/actions/runs?per_page=20");for(const r of d.workflow_runs.filter(r=>r.name==="live"&&r.status!=="completed"))await gh(`/actions/runs/${r.id}/cancel`,{method:"POST"})};
+const wd=on=>gh(`/actions/workflows/watchdog.yml/${on?"enable":"disable"}`,{method:"PUT"});
+$("save").onclick=()=>{const v=$("tok").value.trim();if(v&&!v.startsWith("•")){tok=v;localStorage.setItem("so_tok",v);$("tok").value="••••••••";log("Token saved in this browser.");refresh()}};
+$("forget").onclick=()=>{tok="";localStorage.removeItem("so_tok");$("tok").value="";log("Token removed.")};
+$("b-start").onclick=()=>act("Start",async()=>{await wd(true);await start()});
+$("b-stop").onclick=()=>{if(confirm("Stop the stream and pause the watchdog?"))act("Stop",async()=>{await wd(false);await stopAll()})};
+$("b-restart").onclick=()=>act("Restart",async()=>{await stopAll();await new Promise(r=>setTimeout(r,8000));await start()});
+$("b-wdon").onclick=()=>act("Watchdog on",()=>wd(true));$("b-wdoff").onclick=()=>act("Watchdog off",()=>wd(false));
+refresh();setInterval(refresh,tok?30000:200000);
+</script></body></html>

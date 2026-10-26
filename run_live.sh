@@ -20,7 +20,7 @@ while [ "$(date +%s)" -lt "$END" ]; do
   if [ "$(others)" -gt 0 ]; then URL="$BACKUP"; SEG=$(( LEFT < 240 ? LEFT : 240 )); echo "[run] previous run still live -> backup ingest for ${SEG}s"
   else URL="$PRIMARY"; SEG=$LEFT; echo "[run] primary ingest for ${SEG}s"; fi
   if [ -n "${STREAM_KEY_2:-}" ]; then  # same encode, also pushed to a second channel; its failure never stops the main one
-    OUT=(-flags +global_header -f tee "[f=flv:onfail=ignore]${URL}|[f=flv:onfail=ignore]rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY_2}")
+    OUT=(-flags +global_header -f tee "[f=flv:onfail=ignore]${URL}|[f=flv:onfail=ignore]${URL//${STREAM_KEY}/${STREAM_KEY_2}}")
   else OUT=(-f flv "$URL"); fi
   rm -f audio.fifo; mkfifo audio.fifo
   python3 stream.py --seconds "$SEG" --audio audio.fifo | "$FF" -hide_banner -loglevel error -stats -stats_period 60 \

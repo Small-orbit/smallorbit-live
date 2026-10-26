@@ -272,6 +272,9 @@ ty0 = H - SH - int(14 * H / 720)
 ty1 = int(16 * H / 720)
 import os as _os, fcntl
 music = Music(rng, FPS)
+import time as _t0
+_hb = [0, _t0.time()]
+print('[stream] renderer started', file=sys.stderr, flush=True)
 aud = None
 if args.audio:
     fd = _os.open(args.audio, _os.O_RDWR)
@@ -352,6 +355,10 @@ while frame_i < t_end:
             reg = frame[yy0:yy0 + SH].astype(np.uint16)
             frame[yy0:yy0 + SH] = ((reg * (255 - al) + rgb * al) // 255).astype(np.uint8)
         out.write(frame.tobytes())
+        _hb[0] += 1
+        if _hb[0] % 1800 == 0:
+            import time as _t
+            now = _t.time(); print(f"[stream] frames={_hb[0]} fps={1800/(now-_hb[1]):.1f} rule={rule} steps={steps}", file=sys.stderr, flush=True); _hb[1] = now
         ab = music.render()
         if aud is not None: aud.write(ab)
         frame_i += 1; ep_f += 1

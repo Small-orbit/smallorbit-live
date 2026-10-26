@@ -20,11 +20,11 @@ while [ "$(date +%s)" -lt "$END" ]; do
   if [ "$(others)" -gt 0 ]; then URL="$BACKUP"; SEG=$(( LEFT < 240 ? LEFT : 240 )); echo "[run] previous run still live -> backup ingest for ${SEG}s"
   else URL="$PRIMARY"; SEG=$LEFT; echo "[run] primary ingest for ${SEG}s"; fi
   rm -f audio.fifo; mkfifo audio.fifo
-  python3 stream.py --seconds "$SEG" --audio audio.fifo | "$FF" -hide_banner -loglevel warning -stats -stats_period 60 \
+  python3 stream.py --seconds "$SEG" --audio audio.fifo | "$FF" -hide_banner -loglevel error -stats -stats_period 60 \
     -re -f rawvideo -pix_fmt bgr24 -s ${W}x${H} -r 30 -i - \
     -f s16le -ar 48000 -ac 2 -i audio.fifo \
     -map 0:v -map 1:a \
-    -c:v libx264 -preset veryfast -tune zerolatency -b:v 4500k -maxrate 4500k -bufsize 9000k -g 60 -keyint_min 60 -sc_threshold 0 -pix_fmt yuv420p \
+    -c:v libx264 -preset superfast -tune zerolatency -b:v 4500k -maxrate 4500k -bufsize 9000k -g 60 -keyint_min 60 -sc_threshold 0 -pix_fmt yuv420p \
     -c:a aac -b:a 160k -ar 48000 -f flv "$URL" 2>&1 | stdbuf -oL tr '\r' '\n'
   echo "[run] ffmpeg exited ($?), next segment in 2s"; sleep 2
 done

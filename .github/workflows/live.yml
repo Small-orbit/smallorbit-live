@@ -20,6 +20,7 @@ jobs:
       - name: go live
         env:
           STREAM_KEY: ${{ secrets.YT_STREAM_KEY }}
+          STREAM_KEY_2: ${{ secrets.YT_STREAM_KEY_2 }}
           GH_TOKEN: ${{ github.token }}
           SECONDS_TO_RUN: "21300"
         run: |

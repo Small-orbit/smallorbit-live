@@ -300,7 +300,7 @@ chat.start()
 while frame_i < t_end:
     req = chat.next_rule()
     rule = req[0] if req else pick_rule()
-    sub_txt = text_strip(f"PICKED BY {req[1]}" if req else "TYPE A RULE LIKE RRLL IN CHAT", FONT_S)
+    sub_txt = text_strip(f"PICKED BY {req[1]}" if req else "TYPE RULE IN CHAT", FONT_S)
     ncol = len(rule)
     turns = np.array([1 if c == "R" else -1 for c in rule], np.int64)
     grid = np.zeros((G, G), np.uint8)

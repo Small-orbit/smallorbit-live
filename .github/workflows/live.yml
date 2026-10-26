@@ -1,0 +1,26 @@
+name: live
+on:
+  workflow_dispatch:
+permissions:
+  actions: write
+  contents: read
+jobs:
+  stream:
+    runs-on: ubuntu-latest
+    timeout-minutes: 358
+    steps:
+      - uses: actions/checkout@v4
+      - name: deps
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          pip install -q numpy numba opencv-python-headless pillow
+      - name: go live
+        env:
+          STREAM_KEY: ${{ secrets.YT_STREAM_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          SECONDS_TO_RUN: "21300"
+        run: |
+          if [ $(( ${{ github.run_number }} % 2 )) -eq 0 ]; then export INGEST=backup; else export INGEST=primary; fi
+          echo "ingest=$INGEST"
+          ( sleep 20700; gh workflow run live.yml -R ${{ github.repository }} ) &
+          ./run_live.sh

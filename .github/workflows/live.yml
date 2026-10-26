@@ -12,8 +12,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: deps
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          curl -sL https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz | sudo tar -xJ -C /usr/local/bin --strip-components=1 --wildcards '*/ffmpeg' &
           pip install -q numpy numba opencv-python-headless pillow
+          wait
       - name: go live
         env:
           STREAM_KEY: ${{ secrets.YT_STREAM_KEY }}

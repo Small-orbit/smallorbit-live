@@ -10,6 +10,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from numba import njit, prange, set_num_threads
 from music import Music
+import chat
 
 W = int(os.environ.get("W", 1280)); H = int(os.environ.get("H", 720)); FPS = 30
 RS = float(os.environ.get("RS", 0.7))   # 3D render scale, upscaled to W x H
@@ -227,7 +228,7 @@ def render(frame, grid, heights, bright, mips, offs, cam, antx, anty, show_ant, 
 
 def camera(cx, cy, half, yaw, pitch):
     fov = math.radians(42)
-    F = (RH / 2) / math.tan(fov / 2)
+    F = (rframe.shape[0] / 2) / math.tan(fov / 2)
     dist = half / math.tan(fov / 2) * 1.15
     sy_, cyw = math.sin(yaw), math.cos(yaw)
     cp, sp = math.cos(pitch), math.sin(pitch)
@@ -286,6 +287,7 @@ import os as _os, fcntl
 music = Music(rng, FPS)
 import time as _t0
 _hb = [0, _t0.time()]
+_ad = [0.0, 0, _t0.time()]
 print('[stream] renderer started', file=sys.stderr, flush=True)
 aud = None
 if args.audio:
@@ -294,8 +296,11 @@ if args.audio:
     except Exception: pass
     aud = _os.fdopen(fd, 'wb', buffering=0)
 
+chat.start()
 while frame_i < t_end:
-    rule = pick_rule()
+    req = chat.next_rule()
+    rule = req[0] if req else pick_rule()
+    sub_txt = text_strip(f"PICKED BY {req[1]}" if req else "TYPE A RULE LIKE RRLL IN CHAT", FONT_S)
     ncol = len(rule)
     turns = np.array([1 if c == "R" else -1 for c in rule], np.int64)
     grid = np.zeros((G, G), np.uint8)
@@ -363,15 +368,24 @@ while frame_i < t_end:
         if fade_out: a = 1 - fade_out / FPS
         show_ant = (not done) or hold_frames < FPS
         render(rframe, grid, heights, bright, mips, offs, camv, x, y, show_ant, SS, a)
-        cv2.resize(rframe, (W, H), dst=frame, interpolation=cv2.INTER_LINEAR)
-        for (rgb, al), yy0 in ((text_strip(f"STEP {steps:,}", FONT), ty0), (rule_txt, ty1)):
+        cv2.resize(rframe, (W, H), dst=frame, interpolation=cv2.INTER_CUBIC if rframe.shape[1] < W else cv2.INTER_NEAREST)
+        for (rgb, al), yy0 in ((text_strip(f"STEP {steps:,}", FONT), ty0), (rule_txt, ty1), (sub_txt, ty1 + SH - int(6 * H / 720))):
             reg = frame[yy0:yy0 + SH].astype(np.uint16)
             frame[yy0:yy0 + SH] = ((reg * (255 - al) + rgb * al) // 255).astype(np.uint8)
+        _now = _t0.time(); _ad[0] += _now - _ad[2]; _ad[1] += 1
+        if _ad[1] == 60:   # adaptive render scale: use the headroom, never fall behind 30 fps
+            avg = _ad[0] / 60; rs = rframe.shape[1] / W
+            nrs = rs - 0.05 if avg > 0.026 else (rs + 0.05 if avg < 0.018 else rs)
+            nrs = min(1.0, max(0.5, nrs))
+            if abs(nrs - rs) > 1e-3:
+                rframe = np.zeros((int(H * nrs) // 2 * 2, int(W * nrs) // 2 * 2, 3), np.uint8)
+            _ad[0] = 0.0; _ad[1] = 0
         out.write(frame.tobytes())
         _hb[0] += 1
         if _hb[0] % 1800 == 0:
             import time as _t
-            now = _t.time(); print(f"[stream] frames={_hb[0]} fps={1800/(now-_hb[1]):.1f} rule={rule} steps={steps}", file=sys.stderr, flush=True); _hb[1] = now
+            now = _t.time(); print(f"[stream] frames={_hb[0]} fps={1800/(now-_hb[1]):.1f} rule={rule} steps={steps} scale={rframe.shape[1]/W:.2f}", file=sys.stderr, flush=True); _hb[1] = now
         ab = music.render()
         if aud is not None: aud.write(ab)
+        _ad[2] = _t0.time()
         frame_i += 1; ep_f += 1

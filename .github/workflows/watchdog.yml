@@ -3,6 +3,8 @@ on:
   schedule:
     - cron: "*/30 * * * *"   # restarts the stream chain if it ever breaks
   workflow_dispatch:
+  push:
+    paths: ['.github/workflows/watchdog.yml', 'kick.txt']
 permissions:
   actions: write
 jobs:

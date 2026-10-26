@@ -12,6 +12,8 @@ from numba import njit, prange, set_num_threads
 from music import Music
 
 W = int(os.environ.get("W", 1280)); H = int(os.environ.get("H", 720)); FPS = 30
+RS = float(os.environ.get("RS", 0.7))   # 3D render scale, upscaled to W x H
+RW = int(W * RS) // 2 * 2; RH = int(H * RS) // 2 * 2
 SS = int(os.environ.get("SS", 1))          # supersamples per axis in 3D zone
 G = 2048                                    # grid size (wraps), power of 2
 LEVELS = 12
@@ -225,20 +227,20 @@ def render(frame, grid, heights, bright, mips, offs, cam, antx, anty, show_ant, 
 
 def camera(cx, cy, half, yaw, pitch):
     fov = math.radians(42)
-    F = (H / 2) / math.tan(fov / 2)
+    F = (RH / 2) / math.tan(fov / 2)
     dist = half / math.tan(fov / 2) * 1.15
     sy_, cyw = math.sin(yaw), math.cos(yaw)
     cp, sp = math.cos(pitch), math.sin(pitch)
     f = np.array([cp * cyw, cp * sy_, -sp])
     r = np.array([-sy_, cyw, 0.0])
-    u = np.cross(r, f)
+    u = np.cross(f, r)
     o = np.array([cx, cy, 0.0]) - f * dist
     return o, f, r, u, F, dist
 
 def project(pt, o, f, r, u, F):
     v = np.asarray(pt) - o
     z = v @ f
-    return W / 2 + F * (v @ r) / z, H / 2 - F * (v @ u) / z
+    return RW / 2 + F * (v @ r) / z, RH / 2 - F * (v @ u) / z
 
 try:
     FONT = ImageFont.truetype(args.font, int(34 * H / 720))
@@ -264,6 +266,8 @@ mips = np.zeros(o_, np.float32)
 
 out = sys.stdout.buffer
 frame = np.zeros((H, W, 3), np.uint8)
+rframe = np.zeros((RH, RW, 3), np.uint8)
+import cv2
 frame_i = 0
 t_end = args.seconds * FPS if args.seconds > 0 else float("inf")
 yaw = rng.uniform(0, 2 * math.pi)
@@ -350,7 +354,8 @@ while frame_i < t_end:
         a = min(1.0, ep_f / FPS)
         if fade_out: a = 1 - fade_out / FPS
         show_ant = (not done) or hold_frames < FPS
-        render(frame, grid, heights, bright, mips, offs, camv, x, y, show_ant, SS, a)
+        render(rframe, grid, heights, bright, mips, offs, camv, x, y, show_ant, SS, a)
+        cv2.resize(rframe, (W, H), dst=frame, interpolation=cv2.INTER_LINEAR)
         for (rgb, al), yy0 in ((text_strip(f"STEP {steps:,}", FONT), ty0), (rule_txt, ty1)):
             reg = frame[yy0:yy0 + SH].astype(np.uint16)
             frame[yy0:yy0 + SH] = ((reg * (255 - al) + rgb * al) // 255).astype(np.uint8)

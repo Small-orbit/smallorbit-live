@@ -20,7 +20,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SECONDS_TO_RUN: "21300"
         run: |
+          if [ -z "$STREAM_KEY" ]; then echo "YT_STREAM_KEY secret missing"; exit 1; fi
           if [ $(( ${{ github.run_number }} % 2 )) -eq 0 ]; then export INGEST=backup; else export INGEST=primary; fi
           echo "ingest=$INGEST"
           ( sleep 20700; gh workflow run live.yml -R ${{ github.repository }} ) &
-          ./run_live.sh
+          bash run_live.sh

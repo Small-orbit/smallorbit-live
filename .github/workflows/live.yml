@@ -12,7 +12,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: deps
         run: |
-          (sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg) &
+          sudo rm -f /var/lib/man-db/auto-update
+          (timeout 300 sudo apt-get update -qq; timeout 420 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends -o DPkg::Lock::Timeout=60 ffmpeg) &
           pip install -q numpy numba opencv-python-headless pillow
           wait
           ffmpeg -version | head -1

@@ -3,8 +3,11 @@
 # Uses the backup ingest only while the previous run is still streaming (hand-off overlap), then primary.
 set -u
 cd "$(dirname "$0")"
+FF=${FFMPEG:-ffmpeg}
 PRIMARY="rtmp://a.rtmp.youtube.com/live2/${STREAM_KEY}"
 BACKUP="rtmp://b.rtmp.youtube.com/live2?backup=1/${STREAM_KEY}"
+command -v "$FF" >/dev/null || { echo "[run] ffmpeg missing: $FF"; exit 1; }
+echo "[run] using $FF"
 W=${W:-1280}; H=${H:-720}
 END=$(( $(date +%s) + ${SECONDS_TO_RUN:-21300} ))
 others() {  # other live runs still in progress
@@ -17,7 +20,7 @@ while [ "$(date +%s)" -lt "$END" ]; do
   if [ "$(others)" -gt 0 ]; then URL="$BACKUP"; SEG=$(( LEFT < 240 ? LEFT : 240 )); echo "[run] previous run still live -> backup ingest for ${SEG}s"
   else URL="$PRIMARY"; SEG=$LEFT; echo "[run] primary ingest for ${SEG}s"; fi
   rm -f audio.fifo; mkfifo audio.fifo
-  python3 stream.py --seconds "$SEG" --audio audio.fifo | ffmpeg -hide_banner -loglevel warning -stats -stats_period 60 \
+  python3 stream.py --seconds "$SEG" --audio audio.fifo | "$FF" -hide_banner -loglevel warning -stats -stats_period 60 \
     -thread_queue_size 64 -re -f rawvideo -pix_fmt bgr24 -s ${W}x${H} -r 30 -i - \
     -thread_queue_size 256 -f s16le -ar 48000 -ac 2 -i audio.fifo \
     -map 0:v -map 1:a \

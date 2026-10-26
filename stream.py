@@ -1,6 +1,6 @@
 """Small Orbit endless turmite livestream renderer.
 Writes raw BGR frames to stdout (1280x720 @ 30 fps) forever, or for --seconds.
-Each episode: random Langton's-ant rule, slow start, exponential speed-up,
+Each episode: random Langton's-ant rule,  slow start, exponential speed-up,
 hold on the result, fade, next rule.
 """
 import sys, time, argparse, math

@@ -14,7 +14,7 @@ jobs:
         run: |
           sudo rm -f /var/lib/man-db/auto-update
           ( export DEBIAN_FRONTEND=noninteractive; A="-y -qq --no-install-recommends -o DPkg::Lock::Timeout=60"
-            timeout 240 sudo -E apt-get install $A ffmpeg || { timeout 240 sudo apt-get update -qq -o Dir::Etc::sourceparts=- ; timeout 300 sudo -E apt-get install $A ffmpeg; } ) &
+            timeout 240 sudo -E apt-get install $A ffmpeg || { timeout 240 sudo apt-get update -qq; timeout 300 sudo -E apt-get install $A ffmpeg; } ) &
           pip install -q numpy numba opencv-python-headless pillow
           wait
           ffmpeg -version | head -1
